@@ -34,13 +34,13 @@ type BusinessCategoryJunction struct {
 }
 
 type BusinessAddress struct {
-	Address   string
-	District  string
-	Province  string
-	Country   string
-	ZipCode   string
-	Latitude  float64
-	Longitude float64
+	Address     string  `json:"address"`
+	District    string  `json:"district"`
+	Province    string  `json:"province"`
+	CountryCode string  `json:"country_code"`
+	ZipCode     string  `json:"zip_code"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
 	// DisplayAddress string // useful for searching even though can dynamically create & every time address updated displayAddress must be updated too
 }
 
