@@ -19,7 +19,7 @@ type BusinessRating struct {
 }
 
 type BusinessAddress struct {
-	BusinessID  string  `json:"business_id"`
+	BusinessID  string  `json:"business_id,omitempty"`
 	Address     string  `json:"address"`
 	District    string  `json:"district"`
 	Province    string  `json:"province"`
@@ -44,7 +44,6 @@ type BusinessUpsertQuery struct {
 	Price       float32
 	Categories  string
 	Address     string
-	City        string
 	District    string
 	Province    string
 	CountryCode string
@@ -83,7 +82,6 @@ type BusinessCreateRequest struct {
 	// in put request any existing categories will be replaced ensure existing categories it included if the're won't be replaced
 	Categories  []BusinessCategory `json:"categories"`
 	Address     string             `json:"address"`
-	City        string             `json:"city"`
 	District    string             `json:"district"`
 	Province    string             `json:"province"`
 	CountryCode string             `json:"country_code" binding:"max=2"`
@@ -102,7 +100,6 @@ type BusinessUpdateRequest struct {
 	// in put request any existing categories will be replaced ensure existing categories it included if the're won't be replaced
 	Categories  []BusinessCategory `json:"categories"`
 	Address     string             `json:"address"`
-	City        string             `json:"city"`
 	District    string             `json:"district"`
 	Province    string             `json:"province"`
 	CountryCode string             `json:"country_code"`

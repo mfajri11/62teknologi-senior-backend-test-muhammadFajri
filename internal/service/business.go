@@ -110,7 +110,7 @@ func (svc *businessService) Create(ctx context.Context, req model.BusinessCreate
 	}
 
 	resp = &model.BusinessCreateResponse{ID: businessID, BusinessCreateRequest: req}
-	resp.DisplayAddress = []string{resp.Address, resp.District, resp.City, resp.Province, resp.ZipCode, resp.CountryCode}
+	resp.DisplayAddress = []string{resp.Address, resp.District, resp.Province, resp.ZipCode, resp.CountryCode}
 	// compute price range $, or $$ and more.
 	// https://www.cmsmax.com/faqs/misc/price-ranges
 	resp.PriceRange = priceRange(resp.Price)
@@ -157,7 +157,7 @@ func (svc *businessService) Update(ctx context.Context, id string, req model.Bus
 	}
 
 	resp = &model.BusinessUpdateResponse{ID: id, BusinessUpdateRequest: req}
-	resp.DisplayAddress = []string{resp.Address, resp.District, resp.City, resp.Province, resp.ZipCode, resp.CountryCode}
+	resp.DisplayAddress = []string{resp.Address, resp.District, resp.Province, resp.ZipCode, resp.CountryCode}
 	resp.PriceRange = priceRange(resp.Price)
 
 	return resp, nil
@@ -253,7 +253,6 @@ func upsertRequestToQueryStruct(id string, r interface{}) model.BusinessUpsertQu
 			OpenAt:      req.OpenAt,
 			Address:     req.Address,
 			District:    req.District,
-			City:        req.City,
 			Province:    req.Province,
 			ZipCode:     req.ZipCode,
 			CountryCode: req.CountryCode,
@@ -288,7 +287,6 @@ func upsertRequestToQueryStruct(id string, r interface{}) model.BusinessUpsertQu
 			OpenAt:      req.OpenAt,
 			Address:     req.Address,
 			District:    req.District,
-			City:        req.City,
 			Province:    req.Province,
 			ZipCode:     req.ZipCode,
 			CountryCode: req.CountryCode,
