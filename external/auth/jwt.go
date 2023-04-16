@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri/pkg/apperror"
 )
 
 const (
@@ -49,7 +48,7 @@ func ValidateJWT(tokenString string) (interface{}, error) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("external.ValidateJWT: miss match algo type got %s want 'HS256:'", t.Method.Alg())
 		}
-		if strings.ToLower(claims.Issuer) != "62teknologi" { // TODO: use config
+		if strings.ToLower(claims.Issuer) != "62teknologi" {
 			return nil, fmt.Errorf("external.ValidateJWT: unexpected issuer")
 		}
 
@@ -63,7 +62,6 @@ func ValidateJWT(tokenString string) (interface{}, error) {
 	payload, ok := token.Claims.(*JwtBusinessClaim)
 	if !ok {
 		err = fmt.Errorf("service.businessService.Delete: invalid claim type %T", token)
-		err = apperror.WrapError(err, apperror.ErrUnauthorized)
 		return nil, err
 	}
 
