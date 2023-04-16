@@ -3,39 +3,65 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	external "github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri/external/auth"
 	"github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri/internal/model"
 	"github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri/internal/repository"
 	"github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri/pkg/apperror"
 )
 
 type businessService struct {
-	businessRepo repository.BusinesserRepository
+	businessRepo repository.BusinessRepository
 }
 
 type BusinessService interface {
 	Delete(ctx context.Context, id string) error
 	Create(ctx context.Context, req model.BusinessCreateRequest) (resp *model.BusinessCreateResponse, err error)
 	Update(ctx context.Context, id string, req model.BusinessUpdateRequest) (resp *model.BusinessUpdateResponse, err error)
+	Search(ctx context.Context, req model.BusinessSearchRequest) (resp []*model.BusinessSearchResponse, err error)
 }
 
-func NewBusinessService(businessRepo repository.BusinesserRepository) BusinessService {
+func NewBusinessService(businessRepo repository.BusinessRepository) BusinessService {
 	return &businessService{businessRepo: businessRepo}
 }
 
-func (svc *businessService) Delete(ctx context.Context, id string) error {
-	// TODO: add token authentication & authorization (for admin delete & create & update)
+func (svc *businessService) Delete(ctx context.Context, id string) (err error) {
+	tokenString, ok := ctx.Value("Authorization").(string)
+	if !ok {
+		err = fmt.Errorf("service.businessService.Delete: invalid token type want string got %T", tokenString)
+		err = apperror.WrapError(err, apperror.ErrUnauthorized)
+		return err
+	}
+	payload, err := external.ValidateJWT(tokenString)
+	if err != nil {
+		err = fmt.Errorf("service.businessService.Delete: error validate api key: %w", err)
+		err = apperror.WrapError(err, apperror.ErrAuthorize)
+		return err
+	}
+	claim, ok := payload.(*external.JwtBusinessClaim)
+	if !ok {
+		err = fmt.Errorf("service.businessService.Delete: invalid claim type %T", payload)
+		err = apperror.WrapError(err, apperror.ErrUnauthorized)
+		return err
+	}
+	if claim.Role != external.Admin {
+		err = fmt.Errorf("service.businessService.Delete: error validate api key: %w", err)
+		err = apperror.WrapError(err, apperror.ErrAuthorize)
+		return err
+	}
 	nAffected, err := svc.businessRepo.Delete(ctx, id)
 
 	if err != nil {
-		err = fmt.Errorf("service.businessService.Delete: error Delete business: %w", err)
+		err = fmt.Errorf("service.businessService.Delete: error delete business: %w", err)
 		err = apperror.WrapError(err, apperror.ErrInternalError)
 		return err
 	}
 
 	if err == nil && nAffected == 0 {
-		err = fmt.Errorf("service.businessService.Delete: error Delete business: %w", err)
+		err = fmt.Errorf("service.businessService.Delete: error no rows: %w", pgx.ErrNoRows)
 		err = apperror.WrapError(err, apperror.ErrNotFound)
 		return err
 	}
@@ -44,11 +70,33 @@ func (svc *businessService) Delete(ctx context.Context, id string) error {
 }
 
 func (svc *businessService) Create(ctx context.Context, req model.BusinessCreateRequest) (resp *model.BusinessCreateResponse, err error) {
-	// TODO: add token authentication & authorization (for admin delete & create & update)
+	tokenString, ok := ctx.Value("Authorization").(string)
+	if !ok {
+		err = fmt.Errorf("service.businessService.Create: invalid token type want string got %T", tokenString)
+		err = apperror.WrapError(err, apperror.ErrUnauthorized)
+		return nil, err
+	}
+	payload, err := external.ValidateJWT(tokenString)
+	if err != nil {
+		err = fmt.Errorf("service.businessService.Create: error validate api key: %w", err)
+		err = apperror.WrapError(err, apperror.ErrAuthorize)
+		return nil, err
+	}
+	claim, ok := payload.(*external.JwtBusinessClaim)
+	if !ok {
+		err = fmt.Errorf("service.businessService.Create: invalid claim type %T", payload)
+		err = apperror.WrapError(err, apperror.ErrUnauthorized)
+		return nil, err
+	}
+	if claim.Role != external.Admin {
+		err = fmt.Errorf("service.businessService.Create: error validate api key: %w", err)
+		err = apperror.WrapError(err, apperror.ErrAuthorize)
+		return nil, err
+	}
 	id, err := uuid.NewUUID()
 	if err != nil {
 		// internal server
-		err = fmt.Errorf("service.businessService.Create: error Create business: %w", err)
+		err = fmt.Errorf("service.businessService.Create: error create business: %w", err)
 		err = apperror.WrapError(err, apperror.ErrInternalError)
 		return nil, err
 	}
@@ -63,7 +111,7 @@ func (svc *businessService) Create(ctx context.Context, req model.BusinessCreate
 
 	resp = &model.BusinessCreateResponse{ID: businessID, BusinessCreateRequest: req}
 	resp.DisplayAddress = []string{resp.Address, resp.District, resp.City, resp.Province, resp.ZipCode, resp.CountryCode}
-	// compute price range $, $$ or $$$
+	// compute price range $, or $$ and more.
 	// https://www.cmsmax.com/faqs/misc/price-ranges
 	resp.PriceRange = priceRange(resp.Price)
 
@@ -71,7 +119,29 @@ func (svc *businessService) Create(ctx context.Context, req model.BusinessCreate
 }
 
 func (svc *businessService) Update(ctx context.Context, id string, req model.BusinessUpdateRequest) (resp *model.BusinessUpdateResponse, err error) {
-	// TODO: add token authentication & authorization (for admin delete & create & update)
+	tokenString, ok := ctx.Value("Authorization").(string)
+	if !ok {
+		err = fmt.Errorf("service.businessService.Update: invalid token type want string got %T", tokenString)
+		err = apperror.WrapError(err, apperror.ErrUnauthorized)
+		return nil, err
+	}
+	payload, err := external.ValidateJWT(tokenString)
+	if err != nil {
+		err = fmt.Errorf("service.businessService.Update: error validate api key: %w", err)
+		err = apperror.WrapError(err, apperror.ErrAuthorize)
+		return nil, err
+	}
+	claim, ok := payload.(*external.JwtBusinessClaim)
+	if !ok {
+		err = fmt.Errorf("service.businessService.Update: invalid claim type %T", payload)
+		err = apperror.WrapError(err, apperror.ErrUnauthorized)
+		return nil, err
+	}
+	if claim.Role != external.Admin {
+		err = fmt.Errorf("service.businessService.Update: error validate api key: %w", err)
+		err = apperror.WrapError(err, apperror.ErrAuthorize)
+		return nil, err
+	}
 	business := requestToQueryStruct(id, req)
 	nAffected, err := svc.businessRepo.Update(ctx, business)
 	if err != nil {
@@ -81,7 +151,7 @@ func (svc *businessService) Update(ctx context.Context, id string, req model.Bus
 	}
 
 	if err == nil && nAffected == 0 {
-		err = fmt.Errorf("service.businessService.Delete: error update business: %w", err)
+		err = fmt.Errorf("service.businessService.Delete: error update business: %w", pgx.ErrNoRows)
 		err = apperror.WrapError(err, apperror.ErrNotFound)
 		return nil, err
 	}
@@ -91,6 +161,68 @@ func (svc *businessService) Update(ctx context.Context, id string, req model.Bus
 	resp.PriceRange = priceRange(resp.Price)
 
 	return resp, nil
+}
+
+func (svc *businessService) Search(ctx context.Context, req model.BusinessSearchRequest) (resp []*model.BusinessSearchResponse, err error) {
+
+	tokenString, ok := ctx.Value("Authorization").(string)
+	if !ok {
+		err = fmt.Errorf("service.businessService.Update: invalid token type want string got %T", tokenString)
+		err = apperror.WrapError(err, apperror.ErrUnauthorized)
+		return nil, err
+	}
+	// authenticate only, everyone has token can access search services
+	_, err = external.ValidateJWT(tokenString)
+	if err != nil {
+		err = fmt.Errorf("service.businessService.Update: error validate api key: %w", err)
+		err = apperror.WrapError(err, apperror.ErrAuthorize)
+		return nil, err
+	}
+
+	businesses, errNoRow, err := svc.businessRepo.Search(ctx, req)
+	if errNoRow != nil {
+		return []*model.BusinessSearchResponse{}, nil
+	}
+
+	if err != nil {
+		err = fmt.Errorf("service.businessService.Search: error search: %w", err)
+		err = apperror.WrapError(err, apperror.ErrInternalError)
+		return nil, err
+	}
+	resps := make([]*model.BusinessSearchResponse, 0)
+	for _, b := range businesses {
+		resp := new(model.BusinessSearchResponse)
+		resp.ID = b.ID
+		resp.Name = b.Name
+		resp.Phone = b.Phone
+		resp.Price = b.Price
+		resp.PriceRange = priceRange(b.Price)
+		resp.Location.Address = b.Address
+		resp.Location.District = b.District
+		resp.Location.Province = b.Province
+		resp.Location.ZipCode = b.ZipCode
+		resp.Latitude = b.Latitude
+		resp.Longitude = b.Longitude
+		resp.Rating = b.Rating
+		resp.RatingCount = b.RatingCount
+		resp.Location.DisplayAddress = []string{b.Address, b.District, b.Province, b.ZipCode}
+		categories := strings.Split(b.Categories, ",")
+		catResp := make([]model.BusinessCategory, len(categories), len(categories))
+		if b.Categories != "" {
+			for i, c := range categories {
+				cats := strings.Split(c, ":")
+				catResp[i] = model.BusinessCategory{
+					Alias: cats[0],
+					Title: cats[1],
+				}
+			}
+			resp.Categories = catResp
+		}
+
+		resps = append(resps, resp)
+	}
+
+	return resps, nil
 }
 
 func priceRange(price float32) string {
@@ -114,6 +246,7 @@ func requestToQueryStruct(id string, req model.BusinessCreateRequest) model.Busi
 	business := model.BusinessUpsertQuery{
 		ID:          id,
 		Name:        req.Name,
+		Price:       req.Price,
 		Phone:       req.Phone,
 		OpenNow:     req.OpenNow,
 		OpenAt:      req.OpenAt,
@@ -144,5 +277,4 @@ func requestToQueryStruct(id string, req model.BusinessCreateRequest) model.Busi
 	}
 
 	return business
-
 }

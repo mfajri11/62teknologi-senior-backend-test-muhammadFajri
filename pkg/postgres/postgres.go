@@ -26,7 +26,7 @@ func New(connString string, opts ...Option) *pgxpool.Pool {
 	)
 	// check pgxpool implement SQLer
 	var _ SQLer = (*pgxpool.Pool)(nil)
-	// if options exists create pool with those options value, else use default
+	// if options exists create pool with those options values, else use default
 	if len(opts) > 0 {
 		cfg, errParse := pgxpool.ParseConfig(connString)
 		if errParse != nil {

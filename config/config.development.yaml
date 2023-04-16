@@ -1,0 +1,11 @@
+app:
+  host: localhost
+  port: 8080
+  secret-api-key: secret
+  max-limit-pagination: 10
+
+postgres:
+  host: localhost
+  port: 5432
+  username: postgres
+  database-name: 62teknologi

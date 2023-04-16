@@ -3,27 +3,30 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri/config"
 	"github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri/internal/model"
 	"github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri/pkg/postgres"
 )
 
-type BusinesserRepository interface {
+type BusinessRepository interface {
 	Create(ctx context.Context, business model.BusinessUpsertQuery) (string, error)
 	Update(ctx context.Context, business model.BusinessUpsertQuery) (int64, error)
 	Delete(ctx context.Context, id string) (int64, error)
-	// Search()
+	Search(ctx context.Context, business model.BusinessSearchRequest) ([]*model.BusinessJoinAll, error, error)
 }
 
-type BusinessRepository struct {
+type businessRepository struct {
 	sqlClient postgres.SQLer
 }
 
-func NewBusinessRepository(db postgres.SQLer) *BusinessRepository {
-	return &BusinessRepository{sqlClient: db}
+func NewBusinessRepository(db postgres.SQLer) BusinessRepository {
+	return &businessRepository{sqlClient: db}
 }
 
-func (repo *BusinessRepository) Delete(ctx context.Context, id string) (int64, error) {
+func (repo *businessRepository) Delete(ctx context.Context, id string) (int64, error) {
 	query := `
 	WITH 
 		basic AS 
@@ -42,7 +45,7 @@ func (repo *BusinessRepository) Delete(ctx context.Context, id string) (int64, e
 	return result.RowsAffected(), nil
 }
 
-func (repo *BusinessRepository) prepareArgsUpsert(business model.BusinessUpsertQuery) []interface{} {
+func (repo *businessRepository) prepareArgsUpsert(business model.BusinessUpsertQuery) []interface{} {
 	args := make([]interface{}, 16)
 	args[0] = business.ID
 	args[1] = business.Name
@@ -64,7 +67,7 @@ func (repo *BusinessRepository) prepareArgsUpsert(business model.BusinessUpsertQ
 	return args
 }
 
-func (repo *BusinessRepository) Update(ctx context.Context, business model.BusinessUpsertQuery) (int64, error) {
+func (repo *businessRepository) Update(ctx context.Context, business model.BusinessUpsertQuery) (int64, error) {
 	query := `
 	WITH basic AS (
 		UPDATE business_basic_info
@@ -105,7 +108,7 @@ func (repo *BusinessRepository) Update(ctx context.Context, business model.Busin
 	return res.RowsAffected(), nil
 }
 
-func (repo *BusinessRepository) Create(ctx context.Context, business model.BusinessUpsertQuery) (id string, err error) {
+func (repo *businessRepository) Create(ctx context.Context, business model.BusinessUpsertQuery) (id string, err error) {
 	query := `
 	WITH basic AS (
 		INSERT INTO business_basic_info
@@ -131,4 +134,116 @@ func (repo *BusinessRepository) Create(ctx context.Context, business model.Busin
 		return "", err
 	}
 	return business.ID, nil
+}
+
+func (repo *businessRepository) Search(ctx context.Context, business model.BusinessSearchRequest) ([]*model.BusinessJoinAll, error, error) {
+
+	query, args := repo.prepareBusinessSearchQueryArgs(business)
+	rows, err := repo.sqlClient.Query(ctx, query, args...)
+	businesses := make([]*model.BusinessJoinAll, 0)
+	if err != nil {
+		err = fmt.Errorf("repository.businessRepository.Search: error exec select query: %w", err)
+		return nil, nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		row := new(model.BusinessJoinAll)
+		err = rows.Scan(
+			&row.ID,
+			&row.Name,
+			&row.Phone,
+			&row.Price,
+			&row.Categories,
+			&row.OpenNow,
+			&row.OpenAt,
+			&row.Address,
+			&row.District,
+			&row.Province,
+			&row.CountryCode,
+			&row.ZipCode,
+			&row.Latitude,
+			&row.Longitude,
+			&row.Rating,
+			&row.Rating,
+		)
+
+		if err != nil {
+			err = fmt.Errorf("repository.businessRepository.Search: error scan row: %w", err)
+			return nil, nil, err
+		}
+
+		businesses = append(businesses, row)
+	}
+
+	if err != nil {
+		err = fmt.Errorf("repository.businessRepository.Search: error next row: %w", err)
+		return nil, nil, err
+	}
+
+	// err no rows
+	if err == nil && !rows.Next() && len(businesses) == 0 {
+		err = fmt.Errorf("repository.businessRepository.Search: error no row: %w", pgx.ErrNoRows)
+		return nil, err, nil
+	}
+
+	return businesses, nil, nil
+}
+
+func (repo *businessRepository) prepareBusinessSearchQueryArgs(business model.BusinessSearchRequest) (string, []interface{}) {
+	query := `SELECT
+	bs.id, bs.name, bs.phone, bs.price, bs.categories, bs.open_now, bs.open_at,
+	ba.address, ba.district, ba.province, ba.country_code, ba.zip_code, ba.latitude, ba.longitude,
+	br.rating, br.rating_count
+FROM business_basic_info bs
+INNER JOIN business_address ba ON bs.id = ba.business_id
+INNER JOIN business_rating br ON bs.id = br.business_id`
+	nArgs := 0
+	args := make([]interface{}, 0, 5)
+	queriesConds := make([]string, 0, 5)
+	if business.Location != "" {
+		nArgs += 1
+		queriesConds = append(queriesConds,
+			fmt.Sprintf("(lower($%d) LIKE lower(ba.address) OR  lower($%d) LIKE lower(ba.district) OR lower($%d) LIKE lower(ba.province) OR lower($%d) LIKE  lower(ba.zip_code) OR lower($%d) LIKE lower(ba.country_code))", nArgs, nArgs, nArgs, nArgs, nArgs))
+		args = append(args, business.Location)
+	}
+	if business.Location == "" {
+		if business.Latitude != 0 && business.Longitude != 0 {
+			queriesConds = append(queriesConds, fmt.Sprintf("(ba.latitude = $%d AND ba.longitude = $%d)", nArgs+1, nArgs+2))
+			nArgs += 2
+			args = append(args, business.Latitude, business.Longitude)
+		}
+	}
+
+	if business.Term != "" {
+		nArgs += 1
+		queriesConds = append(queriesConds, fmt.Sprintf("bs.name ILIKE ('%%' || $%d || '%%')", nArgs))
+		args = append(args, business.Term)
+	}
+	if business.OpenNow {
+		queriesConds = append(queriesConds, "now()::date > bs.open_at")
+	}
+
+	if len(queriesConds) > 0 {
+		query = fmt.Sprintf("%s WHERE %s", query, strings.Join(queriesConds, " AND "))
+	}
+
+	limitOffsetCond := ""
+	if business.Limit != 0 {
+		nArgs += 1
+		limitOffsetCond = fmt.Sprintf("LIMIT $%d", nArgs)
+		args = append(args, business.Limit)
+		if business.Offset != 0 {
+			nArgs += 1
+			limitOffsetCond = fmt.Sprintf("%s OFFSET $%d", limitOffsetCond, nArgs)
+			args = append(args, business.Offset)
+		}
+		query = fmt.Sprintf("%s %s", query, limitOffsetCond)
+	}
+	// if no query params just select with limit
+	if limitOffsetCond == "" {
+		query = fmt.Sprintf("%s LIMIT %d", query, config.Cfg().App.MaxLimitPagination)
+	}
+	fmt.Println(query)
+
+	return query, args
 }
