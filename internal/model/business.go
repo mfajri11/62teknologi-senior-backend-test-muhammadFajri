@@ -8,7 +8,6 @@ type BusinessBasicInfo struct {
 	Price float32
 	// categories value example: alias1:title1, alias2:title2, ... aliasN:titleN, N: total categories.
 	Categories string
-	OpenNow    string
 	OpenAt     string
 }
 
@@ -56,17 +55,6 @@ type BusinessUpsertQuery struct {
 	RatingCount int64
 }
 
-// type BusinessSearchQuery struct {
-// 	Location  string
-// 	Latitude  float64
-// 	Longitude float64
-// 	Term      string
-// 	OpenNow   string
-// 	OpenAt    string
-// 	Limit     int64
-// 	Offset    int64
-// }
-
 // requests model
 type BusinessSearchRequest struct {
 	Location  string  `form:"location"`
@@ -74,26 +62,43 @@ type BusinessSearchRequest struct {
 	Longitude float64 `form:"longitude"`
 	Term      string  `form:"term"`
 	OpenNow   bool    `form:"open_now"`
-	Limit     int64   `form:"limit"`
-	Offset    int64   `form:"offset"`
+	Limit     int64   `form:"limit" binding:"numeric"`
+	Offset    int64   `form:"offset" binding:"numeric"`
 }
 
 type Coordinate struct {
-	Longitude float64 `json:"longitude"`
-	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude" binding:"numeric"`
+	Latitude  float64 `json:"latitude" binding:"numeric"`
 }
 
 type BusinessCategory struct {
-	Title string `json:"title"`
-	Alias string `json:"alias"`
+	Title string `json:"title" binding:"alpha"`
+	Alias string `json:"alias" binding:"alpha"`
 }
 type BusinessCreateRequest struct {
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
-	// TODO: open_now must be boolean
-	OpenNow string  `json:"open_now"`
-	OpenAt  string  `json:"open_at"`
-	Price   float32 `json:"price"`
+	Name   string  `json:"name" binding:"required"`
+	Phone  string  `json:"phone" binding:"e164"`
+	OpenAt string  `json:"open_at" binding:"regexp=\d\d:\d\d:\d\d"`
+	Price  float32 `json:"price" binding:"numeric"`
+	// in put request any existing categories will be replaced ensure existing categories it included if the're won't be replaced
+	Categories  []BusinessCategory `json:"categories"`
+	Address     string             `json:"address"`
+	City        string             `json:"city"`
+	District    string             `json:"district"`
+	Province    string             `json:"province"`
+	CountryCode string             `json:"country_code" binding:"max=2"`
+	ZipCode     string             `json:"zip_code" binding:"numeric"`
+	Latitude    float64            `json:"latitude" binding:"numeric"`
+	Longitude   float64            `json:"longitude" binding:"numeric"`
+	Rating      float32            `json:"rating" binding:"numeric"`
+	RatingCount int64              `json:"rating_count" binding:"numeric"`
+}
+
+type BusinessUpdateRequest struct {
+	Name   string  `json:"name"`
+	Phone  string  `json:"phone"`
+	OpenAt string  `json:"open_at"`
+	Price  float32 `json:"price"`
 	// in put request any existing categories will be replaced ensure existing categories it included if the're won't be replaced
 	Categories  []BusinessCategory `json:"categories"`
 	Address     string             `json:"address"`
@@ -108,17 +113,20 @@ type BusinessCreateRequest struct {
 	RatingCount int64              `json:"rating_count"`
 }
 
-type BusinessUpdateRequest = BusinessCreateRequest
-
 // responses model
 type BusinessCreateResponse struct {
 	ID string `json:"id"`
 	BusinessCreateRequest
 	DisplayAddress []string `json:"display_address"`
-	PriceRange     string
+	PriceRange     string   `json:"price_range"`
 }
 
-type BusinessUpdateResponse = BusinessCreateResponse
+type BusinessUpdateResponse struct {
+	ID string `json:"id"`
+	BusinessUpdateRequest
+	DisplayAddress []string `json:"display_address"`
+	PriceRange     string   `json:"price_range"`
+}
 type BusinessLocation struct {
 	BusinessAddress
 	DisplayAddress []string

@@ -95,17 +95,17 @@ func (svc *businessService) Create(ctx context.Context, req model.BusinessCreate
 	}
 	id, err := uuid.NewUUID()
 	if err != nil {
-		// internal server
 		err = fmt.Errorf("service.businessService.Create: error create business: %w", err)
 		err = apperror.WrapError(err, apperror.ErrInternalError)
 		return nil, err
 	}
 
-	business := requestToQueryStruct(id.String(), req)
+	business := upsertRequestToQueryStruct(id.String(), req)
 	businessID, err := svc.businessRepo.Create(ctx, business)
 
 	if err != nil {
 		err = fmt.Errorf("service.businessService.Create: error create business: %w", err)
+		err = apperror.WrapError(err, apperror.ErrInternalError)
 		return nil, err
 	}
 
@@ -142,7 +142,7 @@ func (svc *businessService) Update(ctx context.Context, id string, req model.Bus
 		err = apperror.WrapError(err, apperror.ErrAuthorize)
 		return nil, err
 	}
-	business := requestToQueryStruct(id, req)
+	business := upsertRequestToQueryStruct(id, req)
 	nAffected, err := svc.businessRepo.Update(ctx, business)
 	if err != nil {
 		err = fmt.Errorf("service.businessService.update: error update business: %w", err)
@@ -156,7 +156,7 @@ func (svc *businessService) Update(ctx context.Context, id string, req model.Bus
 		return nil, err
 	}
 
-	resp = &model.BusinessUpdateResponse{ID: id, BusinessCreateRequest: req}
+	resp = &model.BusinessUpdateResponse{ID: id, BusinessUpdateRequest: req}
 	resp.DisplayAddress = []string{resp.Address, resp.District, resp.City, resp.Province, resp.ZipCode, resp.CountryCode}
 	resp.PriceRange = priceRange(resp.Price)
 
@@ -242,39 +242,79 @@ func priceRange(price float32) string {
 	}
 }
 
-func requestToQueryStruct(id string, req model.BusinessCreateRequest) model.BusinessUpsertQuery {
-	business := model.BusinessUpsertQuery{
-		ID:          id,
-		Name:        req.Name,
-		Price:       req.Price,
-		Phone:       req.Phone,
-		OpenNow:     req.OpenNow,
-		OpenAt:      req.OpenAt,
-		Address:     req.Address,
-		District:    req.District,
-		City:        req.City,
-		Province:    req.Province,
-		ZipCode:     req.ZipCode,
-		CountryCode: req.CountryCode,
-		Latitude:    req.Latitude,
-		Longitude:   req.Longitude,
-		Rating:      req.Rating,
-		RatingCount: req.RatingCount,
-	}
-
-	if len(req.Categories) > 0 {
-		categories := ""
-		separator := ","
-		for i, cat := range req.Categories {
-			if i == len(req.Categories)-1 {
-				separator = ""
-			}
-			categories += fmt.Sprintf("%s:%s%s", cat.Alias, cat.Title, separator)
-
+func upsertRequestToQueryStruct(id string, r interface{}) model.BusinessUpsertQuery {
+	switch req := r.(type) {
+	case model.BusinessCreateRequest:
+		business := model.BusinessUpsertQuery{
+			ID:          id,
+			Name:        req.Name,
+			Price:       req.Price,
+			Phone:       req.Phone,
+			OpenAt:      req.OpenAt,
+			Address:     req.Address,
+			District:    req.District,
+			City:        req.City,
+			Province:    req.Province,
+			ZipCode:     req.ZipCode,
+			CountryCode: req.CountryCode,
+			Latitude:    req.Latitude,
+			Longitude:   req.Longitude,
+			Rating:      req.Rating,
+			RatingCount: req.RatingCount,
 		}
 
-		business.Categories = categories
-	}
+		if len(req.Categories) > 0 {
+			categories := ""
+			separator := ","
+			for i, cat := range req.Categories {
+				if i == len(req.Categories)-1 {
+					separator = ""
+				}
+				categories += fmt.Sprintf("%s:%s%s", cat.Alias, cat.Title, separator)
 
-	return business
+			}
+
+			business.Categories = categories
+		}
+
+		return business
+
+	case model.BusinessUpdateRequest:
+		business := model.BusinessUpsertQuery{
+			ID:          id,
+			Name:        req.Name,
+			Price:       req.Price,
+			Phone:       req.Phone,
+			OpenAt:      req.OpenAt,
+			Address:     req.Address,
+			District:    req.District,
+			City:        req.City,
+			Province:    req.Province,
+			ZipCode:     req.ZipCode,
+			CountryCode: req.CountryCode,
+			Latitude:    req.Latitude,
+			Longitude:   req.Longitude,
+			Rating:      req.Rating,
+			RatingCount: req.RatingCount,
+		}
+
+		if len(req.Categories) > 0 {
+			categories := ""
+			separator := ","
+			for i, cat := range req.Categories {
+				if i == len(req.Categories)-1 {
+					separator = ""
+				}
+				categories += fmt.Sprintf("%s:%s%s", cat.Alias, cat.Title, separator)
+
+			}
+
+			business.Categories = categories
+		}
+
+		return business
+
+	default:
+		return model.BusinessUpsertQuery{}
+	}
 }

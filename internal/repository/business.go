@@ -46,23 +46,22 @@ func (repo *businessRepository) Delete(ctx context.Context, id string) (int64, e
 }
 
 func (repo *businessRepository) prepareArgsUpsert(business model.BusinessUpsertQuery) []interface{} {
-	args := make([]interface{}, 16)
+	args := make([]interface{}, 15)
 	args[0] = business.ID
 	args[1] = business.Name
 	args[2] = business.Phone
 	args[3] = business.Price
 	args[4] = business.Categories
-	args[5] = business.OpenNow
-	args[6] = business.OpenAt
-	args[7] = business.Address
-	args[8] = business.District
-	args[9] = business.Province
-	args[10] = business.CountryCode
-	args[11] = business.ZipCode
-	args[12] = business.Latitude
-	args[13] = business.Longitude
-	args[14] = business.Rating
-	args[15] = business.RatingCount
+	args[5] = business.OpenAt
+	args[6] = business.Address
+	args[7] = business.District
+	args[8] = business.Province
+	args[9] = business.CountryCode
+	args[10] = business.ZipCode
+	args[11] = business.Latitude
+	args[12] = business.Longitude
+	args[13] = business.Rating
+	args[14] = business.RatingCount
 
 	return args
 }
@@ -76,25 +75,24 @@ func (repo *businessRepository) Update(ctx context.Context, business model.Busin
 			phone = COALESCE(NULLIF($3, ''), phone),
 			price = COALESCE(NULLIF($4, 0), price),
 			categories = COALESCE(NULLIF($5, ''), categories),
-			open_now = COALESCE(NULLIF($6, ''), open_now),
-			open_at = COALESCE(NULLIF($7, ''), open_at)
+			open_at = COALESCE(NULLIF($6, '')::TIME, open_at)
 		WHERE id = $1
 	),
 	address AS (
 		UPDATE business_address
 		SET
-			address = COALESCE(NULLIF($8, ''), address),
-			district = COALESCE(NULLIF($9, ''), district),
-			province = COALESCE(NULLIF($10, ''), province),
-			country_code = COALESCE(NULLIF($11, ''), country_code),
-			zip_code = COALESCE(NULLIF($12, ''), zip_code),
-			latitude = COALESCE(NULLIF($13, 0), latitude),
-			longitude = COALESCE(NULLIF($14, 0), longitude)
+			address = COALESCE(NULLIF($7, ''), address),
+			district = COALESCE(NULLIF($8, ''), district),
+			province = COALESCE(NULLIF($9, ''), province),
+			country_code = COALESCE(NULLIF($10, ''), country_code),
+			zip_code = COALESCE(NULLIF($11, ''), zip_code),
+			latitude = COALESCE(NULLIF($12, 0), latitude),
+			longitude = COALESCE(NULLIF($13, 0), longitude)
 		WHERE business_id = $1
 	) UPDATE business_rating
 	SET
-		rating = COALESCE(NULLIF($15, 0), rating),
-		rating_count = COALESCE(NULLIF($16, 0), rating_count)
+		rating = COALESCE(NULLIF($14, 0), rating),
+		rating_count = COALESCE(NULLIF($15, 0), rating_count)
 	WHERE business_id = $1;`
 
 	args := repo.prepareArgsUpsert(business)
@@ -112,19 +110,19 @@ func (repo *businessRepository) Create(ctx context.Context, business model.Busin
 	query := `
 	WITH basic AS (
 		INSERT INTO business_basic_info
-			(id, name, phone, price, categories, open_now, open_at)
+			(id, name, phone, price, categories, open_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7)
+			($1, $2, $3, $4, $5, TO_TIMESTAMP($6, 'HH24:MI:SS')::TIME)
 	),
 	address AS(
 		INSERT INTO business_address
 			(business_id, address, district, province, country_code, zip_code, latitude, longitude)
 		VALUES
-			($1, $8, $9, $10, $11, $12, $13, $14)
+			($1,  $7, $8, $9, $10, $11, $12, $13)
 	) INSERT INTO business_rating
 	(business_id, rating, rating_count)
 	VALUES
-	($1, $15, $16);`
+	($1, $14, $15);`
 
 	args := repo.prepareArgsUpsert(business)
 	_, err = repo.sqlClient.Exec(ctx, query, args...)
@@ -154,7 +152,6 @@ func (repo *businessRepository) Search(ctx context.Context, business model.Busin
 			&row.Phone,
 			&row.Price,
 			&row.Categories,
-			&row.OpenNow,
 			&row.OpenAt,
 			&row.Address,
 			&row.District,
@@ -191,7 +188,7 @@ func (repo *businessRepository) Search(ctx context.Context, business model.Busin
 
 func (repo *businessRepository) prepareBusinessSearchQueryArgs(business model.BusinessSearchRequest) (string, []interface{}) {
 	query := `SELECT
-	bs.id, bs.name, bs.phone, bs.price, bs.categories, bs.open_now, bs.open_at,
+	bs.id, bs.name, bs.phone, bs.price, bs.categories, TO_CHAR(bs.open_at, 'HH24:MI:SS'),
 	ba.address, ba.district, ba.province, ba.country_code, ba.zip_code, ba.latitude, ba.longitude,
 	br.rating, br.rating_count
 FROM business_basic_info bs
