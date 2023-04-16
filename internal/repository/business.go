@@ -240,7 +240,6 @@ INNER JOIN business_rating br ON bs.id = br.business_id`
 	if limitOffsetCond == "" {
 		query = fmt.Sprintf("%s LIMIT %d", query, config.Cfg().App.MaxLimitPagination)
 	}
-	fmt.Println(query)
 
 	return query, args
 }

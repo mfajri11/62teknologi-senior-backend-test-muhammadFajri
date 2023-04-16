@@ -203,6 +203,8 @@ func (svc *businessService) Search(ctx context.Context, req model.BusinessSearch
 		resp.Location.ZipCode = b.ZipCode
 		resp.Latitude = b.Latitude
 		resp.Longitude = b.Longitude
+		resp.Coordinates.Latitude = b.Latitude
+		resp.Coordinates.Longitude = b.Longitude
 		resp.Rating = b.Rating
 		resp.RatingCount = b.RatingCount
 		resp.Location.DisplayAddress = []string{b.Address, b.District, b.Province, b.ZipCode}
@@ -242,77 +244,112 @@ func priceRange(price float32) string {
 	}
 }
 
-func upsertRequestToQueryStruct(id string, r interface{}) model.BusinessUpsertQuery {
-	switch req := r.(type) {
-	case model.BusinessCreateRequest:
-		business := model.BusinessUpsertQuery{
-			ID:          id,
-			Name:        req.Name,
-			Price:       req.Price,
-			Phone:       req.Phone,
-			OpenAt:      req.OpenAt,
-			Address:     req.Address,
-			District:    req.District,
-			Province:    req.Province,
-			ZipCode:     req.ZipCode,
-			CountryCode: req.CountryCode,
-			Latitude:    req.Latitude,
-			Longitude:   req.Longitude,
-			Rating:      req.Rating,
-			RatingCount: req.RatingCount,
-		}
-
-		if len(req.Categories) > 0 {
-			categories := ""
-			separator := ","
-			for i, cat := range req.Categories {
-				if i == len(req.Categories)-1 {
-					separator = ""
-				}
-				categories += fmt.Sprintf("%s:%s%s", cat.Alias, cat.Title, separator)
-
-			}
-
-			business.Categories = categories
-		}
-
-		return business
-
-	case model.BusinessUpdateRequest:
-		business := model.BusinessUpsertQuery{
-			ID:          id,
-			Name:        req.Name,
-			Price:       req.Price,
-			Phone:       req.Phone,
-			OpenAt:      req.OpenAt,
-			Address:     req.Address,
-			District:    req.District,
-			Province:    req.Province,
-			ZipCode:     req.ZipCode,
-			CountryCode: req.CountryCode,
-			Latitude:    req.Latitude,
-			Longitude:   req.Longitude,
-			Rating:      req.Rating,
-			RatingCount: req.RatingCount,
-		}
-
-		if len(req.Categories) > 0 {
-			categories := ""
-			separator := ","
-			for i, cat := range req.Categories {
-				if i == len(req.Categories)-1 {
-					separator = ""
-				}
-				categories += fmt.Sprintf("%s:%s%s", cat.Alias, cat.Title, separator)
-
-			}
-
-			business.Categories = categories
-		}
-
-		return business
-
-	default:
-		return model.BusinessUpsertQuery{}
+func upsertRequestToQueryStruct(id string, req model.BusinessCreateRequest) model.BusinessUpsertQuery {
+	business := model.BusinessUpsertQuery{
+		ID:          id,
+		Name:        req.Name,
+		Price:       req.Price,
+		Phone:       req.Phone,
+		OpenAt:      req.OpenAt,
+		Address:     req.Address,
+		District:    req.District,
+		Province:    req.Province,
+		ZipCode:     req.ZipCode,
+		CountryCode: req.CountryCode,
+		Latitude:    req.Latitude,
+		Longitude:   req.Longitude,
+		Rating:      req.Rating,
+		RatingCount: req.RatingCount,
 	}
+
+	if len(req.Categories) > 0 {
+		categories := ""
+		separator := ","
+		for i, cat := range req.Categories {
+			if i == len(req.Categories)-1 {
+				separator = ""
+			}
+			categories += fmt.Sprintf("%s:%s%s", cat.Alias, cat.Title, separator)
+
+		}
+
+		business.Categories = categories
+	}
+
+	return business
 }
+
+// func upsertRequestToQueryStruct(id string, r interface{}) model.BusinessUpsertQuery {
+// 	switch req := r.(type) {
+// 	case model.BusinessCreateRequest:
+// 		business := model.BusinessUpsertQuery{
+// 			ID:          id,
+// 			Name:        req.Name,
+// 			Price:       req.Price,
+// 			Phone:       req.Phone,
+// 			OpenAt:      req.OpenAt,
+// 			Address:     req.Address,
+// 			District:    req.District,
+// 			Province:    req.Province,
+// 			ZipCode:     req.ZipCode,
+// 			CountryCode: req.CountryCode,
+// 			Latitude:    req.Latitude,
+// 			Longitude:   req.Longitude,
+// 			Rating:      req.Rating,
+// 			RatingCount: req.RatingCount,
+// 		}
+
+// 		if len(req.Categories) > 0 {
+// 			categories := ""
+// 			separator := ","
+// 			for i, cat := range req.Categories {
+// 				if i == len(req.Categories)-1 {
+// 					separator = ""
+// 				}
+// 				categories += fmt.Sprintf("%s:%s%s", cat.Alias, cat.Title, separator)
+
+// 			}
+
+// 			business.Categories = categories
+// 		}
+
+// 		return business
+
+// 	case model.BusinessUpdateRequest:
+// 		business := model.BusinessUpsertQuery{
+// 			ID:          id,
+// 			Name:        req.Name,
+// 			Price:       req.Price,
+// 			Phone:       req.Phone,
+// 			OpenAt:      req.OpenAt,
+// 			Address:     req.Address,
+// 			District:    req.District,
+// 			Province:    req.Province,
+// 			ZipCode:     req.ZipCode,
+// 			CountryCode: req.CountryCode,
+// 			Latitude:    req.Latitude,
+// 			Longitude:   req.Longitude,
+// 			Rating:      req.Rating,
+// 			RatingCount: req.RatingCount,
+// 		}
+
+// 		if len(req.Categories) > 0 {
+// 			categories := ""
+// 			separator := ","
+// 			for i, cat := range req.Categories {
+// 				if i == len(req.Categories)-1 {
+// 					separator = ""
+// 				}
+// 				categories += fmt.Sprintf("%s:%s%s", cat.Alias, cat.Title, separator)
+
+// 			}
+
+// 			business.Categories = categories
+// 		}
+
+// 		return business
+
+// 	default:
+// 		return model.BusinessUpsertQuery{}
+// 	}
+// }

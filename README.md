@@ -4,6 +4,9 @@ This repository is intended as an answer to 62teknologi-senior-backend-test chal
 
 ## how to use
 
+**NOTE**: import defined schema/run the query at `./IMPORTHIS.sql`
+
+
 ```shell
 $ git clone https://github.com/mfajri11/62teknologi-senior-backend-test-muhammadFajri
 
@@ -50,8 +53,8 @@ response
       "Latitude": 41.7873382568359,
       "Longitude": -123.051551818848,
       "Coordinates": {
-        "longitude": 0,
-        "latitude": 0
+        "longitude": -123.051551818848,
+        "latitude": 41.7873382568359
       },
       "Location": {
         "address": "James street 68M",

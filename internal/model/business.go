@@ -75,40 +75,42 @@ type BusinessCategory struct {
 	Alias string `json:"alias" binding:"alpha"`
 }
 type BusinessCreateRequest struct {
-	Name   string  `json:"name" binding:"required"`
-	Phone  string  `json:"phone" binding:"e164"`
-	OpenAt string  `json:"open_at" binding:"regexp=\d\d:\d\d:\d\d"`
-	Price  float32 `json:"price" binding:"numeric"`
+	Name   string  `json:"name" binding:"omitempty,required"`
+	Phone  string  `json:"phone" binding:"omitempty,e164"`
+	OpenAt string  `json:"open_at" binding:"omitempty,regexp=\d\d:\d\d:\d\d"`
+	Price  float32 `json:"price" binding:"omitempty,numeric"`
 	// in put request any existing categories will be replaced ensure existing categories it included if the're won't be replaced
 	Categories  []BusinessCategory `json:"categories"`
 	Address     string             `json:"address"`
 	District    string             `json:"district"`
 	Province    string             `json:"province"`
-	CountryCode string             `json:"country_code" binding:"max=2"`
-	ZipCode     string             `json:"zip_code" binding:"numeric"`
-	Latitude    float64            `json:"latitude" binding:"numeric"`
-	Longitude   float64            `json:"longitude" binding:"numeric"`
-	Rating      float32            `json:"rating" binding:"numeric"`
-	RatingCount int64              `json:"rating_count" binding:"numeric"`
+	CountryCode string             `json:"country_code" omitempty,binding:"max=2"`
+	ZipCode     string             `json:"zip_code" binding:"omitempty,numeric"`
+	Latitude    float64            `json:"latitude" binding:"omitempty,numeric"`
+	Longitude   float64            `json:"longitude" binding:"omitempty,numeric"`
+	Rating      float32            `json:"rating" binding:"omitempty,numeric"`
+	RatingCount int64              `json:"rating_count" binding:"omitempty,numeric"`
 }
 
-type BusinessUpdateRequest struct {
-	Name   string  `json:"name"`
-	Phone  string  `json:"phone"`
-	OpenAt string  `json:"open_at"`
-	Price  float32 `json:"price"`
-	// in put request any existing categories will be replaced ensure existing categories it included if the're won't be replaced
-	Categories  []BusinessCategory `json:"categories"`
-	Address     string             `json:"address"`
-	District    string             `json:"district"`
-	Province    string             `json:"province"`
-	CountryCode string             `json:"country_code"`
-	ZipCode     string             `json:"zip_code"`
-	Latitude    float64            `json:"latitude"`
-	Longitude   float64            `json:"longitude"`
-	Rating      float32            `json:"rating"`
-	RatingCount int64              `json:"rating_count"`
-}
+type BusinessUpdateRequest = BusinessCreateRequest
+
+// type BusinessUpdateRequest struct {
+// 	Name   string  `json:"name"`
+// 	Phone  string  `json:"phone"`
+// 	OpenAt string  `json:"open_at"`
+// 	Price  float32 `json:"price"`
+// 	// in put request any existing categories will be replaced ensure existing categories it included if the're won't be replaced
+// 	Categories  []BusinessCategory `json:"categories"`
+// 	Address     string             `json:"address"`
+// 	District    string             `json:"district"`
+// 	Province    string             `json:"province"`
+// 	CountryCode string             `json:"country_code"`
+// 	ZipCode     string             `json:"zip_code"`
+// 	Latitude    float64            `json:"latitude"`
+// 	Longitude   float64            `json:"longitude"`
+// 	Rating      float32            `json:"rating"`
+// 	RatingCount int64              `json:"rating_count"`
+// }
 
 // responses model
 type BusinessCreateResponse struct {
